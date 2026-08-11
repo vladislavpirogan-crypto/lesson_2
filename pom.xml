@@ -13,7 +13,6 @@
     </properties>
 
     <dependencies>
-        <!-- Зависимость TestNG именно здесь -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
@@ -21,4 +20,11 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-</project>
+
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.5.0</version>
+        </plugin>
+    </plugins>
