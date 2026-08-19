@@ -1,48 +1,49 @@
 package lesson6_6;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class StudentUtils {
 
     /**
-     * Удаляет из коллекции студентов со средним баллом < 3.
-     * Возвращает новую коллекцию без таких студентов (не меняет исходную).
+     * Возвращает новую коллекцию студентов со средним баллом >= 3.
+     * Исходная коллекция не изменяется.
      */
-    public static Set<Student> removeStudentsWithLowAverage(Set<Student> students) {
-        Set<Student> result = new HashSet<>();
-        for (Student s : students) {
-            if (s.getAverageGrade() >= 3.0) {
-                result.add(s);
-            }
+    public Set<Student> getPassedStudents(Set<Student> students) {
+        if (students == null) {
+            return new HashSet<>();
         }
-        return result;
+
+        return students.stream()
+                .filter(student -> student.getAverageGrade() >= 3.0)
+                .collect(Collectors.toSet());
     }
 
     /**
-     * Переводит студентов на следующий курс, если средний балл >= 3.
-     * Меняет состояние объектов внутри коллекции.
+     * Группирует студентов по курсу.
      */
-    public static void promoteStudentsWithGoodAverage(Collection<Student> students) {
-        for (Student s : students) {
-            if (s.getAverageGrade() >= 3.0) {
-                s.promoteToNextCourse();
-            }
+    public Map<Integer, Set<Student>> groupByCourse(Set<Student> students) {
+        if (students == null) {
+            return new HashMap<>();
         }
+
+        return students.stream()
+                .collect(Collectors.groupingBy(
+                        Student::getCourse,
+                        Collectors.toSet()
+                ));
     }
 
     /**
-     * Печатает имена студентов, которые учатся на указанном курсе.
+     * Находит студента с максимальным средним баллом.
      */
-    public static void printStudents(Set<Student> students, int course) {
-        boolean found = false;
-        for (Student s : students) {
-            if (s.getCourse() == course) {
-                System.out.println(s.getName());
-                found = true;
-            }
+    public Student findTopStudent(Set<Student> students) {
+        if (students == null || students.isEmpty()) {
+            return null;
         }
-        if (!found) {
-            System.out.println("Студентов на курсе " + course + " не найдено.");
-        }
+
+        return students.stream()
+                .max(Comparator.comparingDouble(Student::getAverageGrade))
+                .orElse(null);
     }
 }

@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Student {
-    private final String name;
-    private final String group;
-    private int course;
-    private final List<Integer> grades; // оценки по предметам
+    private final String name;          // имя обычно не меняется — final оставляем
+    private String group;               // группа меняется — final убираем
+    private int course;                 // курс меняется — и так без final
+    private List<Integer> grades;       // оценки меняются — final убираем
 
     public Student(String name, String group, int course, List<Integer> grades) {
         this.name = name;
@@ -31,7 +31,22 @@ public class Student {
     }
 
     public List<Integer> getGrades() {
-        return new ArrayList<>(grades); // возвращаем копию
+        // возвращаем копию, чтобы внешний код не мог менять список напрямую
+        return new ArrayList<>(grades);
+    }
+
+    // Сеттеры для изменяемых полей
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    public void setCourse(int course) {
+        this.course = course;
+    }
+
+    // Метод для добавления оценки (вместо прямого изменения списка)
+    public void addGrade(int grade) {
+        grades.add(grade);
     }
 
     // Средний балл
