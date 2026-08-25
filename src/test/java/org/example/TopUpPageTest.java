@@ -13,15 +13,14 @@ public class TopUpPageTest {
 
     private WebDriver driver;
 
-    // ✅ ЭТАП ИНИЦИАЛИЗАЦИИ: Запускается ПЕРЕД каждым тестом
+
     @BeforeMethod
     public void setUp() {
-        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver.exe"); // ⚠️ Замени на реальный путь
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver.exe");
         driver = new ChromeDriver();
-        driver.get("http://your-site-url.com"); // ⚠️ Замени на реальный URL страницы пополнения
+        driver.get("https://www.mts.by");
     }
 
-    // ✅ ТВОЙ СТАРЫЙ ТЕСТ (немного упрощён, теперь использует поле driver)
     @Test
     public void testTopUpFlow() {
         PaymentDetailsPage paymentPage = new PaymentDetailsPage(driver);
@@ -42,7 +41,6 @@ public class TopUpPageTest {
 
     }
 
-    // ✅ НОВЫЙ ТЕСТ: Сюда вставляем твою логику проверки выбора типа платежа
     @Test
     public void shouldSelectPaymentType() {
         // Создаём объект страницы
