@@ -1,4 +1,4 @@
-package org.example;
+package org.example.pages;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -9,81 +9,42 @@ import org.openqa.selenium.support.PageFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TopUpPage {
+public class TopUpPage extends BasePage {
 
-    private final WebDriver driver;
+    @FindBy(css = "[data-type='communication']")
+    private WebElement btnCommunication;
 
-    // Радио-кнопки/кнопки выбора варианта оплаты
-    @FindBy(css = "[data-option='communication-services']")
-    private WebElement optionCommunicationServices;
+    @FindBy(css = "[data-type='home-internet']")
+    private WebElement btnHomeInternet;
 
-    @FindBy(css = "[data-option='home-internet']")
-    private WebElement optionHomeInternet;
+    @FindBy(css = "[data-type='installment']")
+    private WebElement btnInstallment;
 
-    @FindBy(css = "[data-option='installment']")
-    private WebElement optionInstallment;
+    @FindBy(css = "[data-type='debt']")
+    private WebElement btnDebt;
 
-    @FindBy(css = "[data-option='debt']")
-    private WebElement optionDebt;
-
-    // Поля ввода (примерные селекторы — подставь свои)
-    @FindBy(css = "#phone-input")
-    private WebElement phoneInput;
-
-    @FindBy(css = "#amount-input")
-    private WebElement amountInput;
-
-    @FindBy(css = "button[data-action='continue']")
-    private WebElement continueButton;
-
-    // Сообщения/надписи в незаполненных полях (или атрибуты placeholder / aria-label / span рядом)
-    private static final Map<String, By> requiredFieldLabels = new HashMap<>();
-
-    static {
-        requiredFieldLabels.put("phone", By.cssSelector("[for='phone-input']"));
-        requiredFieldLabels.put("amount", By.cssSelector("[for='amount-input']"));
-    }
+    private final Map<String, WebElement> typeButtons = new HashMap<>();
 
     public TopUpPage(WebDriver driver) {
-        this.driver = driver;
+        super(driver);
+        // Без этой строки @FindBy не заполнит поля, и они останутся null
         PageFactory.initElements(driver, this);
+
+        typeButtons.put("услуги связи", btnCommunication);
+        typeButtons.put("домашний интернет", btnHomeInternet);
+        typeButtons.put("рассрочка", btnInstallment);
+        typeButtons.put("задолженность", btnDebt);
     }
 
-    public void selectOptionCommunicationServices() {
-        optionCommunicationServices.click();
+    public void selectPaymentType(String type) {
+        WebElement button = typeButtons.get(type.toLowerCase());
+        if (button == null) {
+            throw new IllegalArgumentException("Неизвестный тип оплаты: " + type);
+        }
+        button.click();
     }
 
-    public void selectOptionHomeInternet() {
-        optionHomeInternet.click();
-    }
-
-    public void selectOptionInstallment() {
-        optionInstallment.click();
-    }
-
-    public void selectOptionDebt() {
-        optionDebt.click();
-    }
-
-    public void setPhone(String phone) {
-        phoneInput.clear();
-        phoneInput.sendKeys(phone);
-    }
-
-    public void setAmount(String amount) {
-        amountInput.clear();
-        amountInput.sendKeys(amount);
-    }
-
-    public void clickContinue() {
-        continueButton.click();
-    }
-
-    public String getLabelText(String fieldKey) {
-        return driver.findElement(requiredFieldLabels.get(fieldKey)).getText();
-    }
-
-    public boolean isRequiredFieldLabelPresent(String fieldKey) {
-        return driver.findElements(requiredFieldLabels.get(fieldKey)).size() > 0;
+    public String getPlaceholderText(String fieldLocatorCss) {
+        return driver.findElement(By.cssSelector(fieldLocatorCss)).getAttribute("placeholder");
     }
 }

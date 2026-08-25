@@ -1,87 +1,45 @@
-package org.example.;
 
-import org.openqa.selenium.By;
+package org.example.pages;
+
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.util.List;
+import java.time.Duration;
 
-public class PaymentDetailsPage {
+public class PaymentDetailsPage extends BasePage {
 
-    private final WebDriver driver;
+    @FindBy(id = "amount-input")
+    private WebElement amountInput;
 
-    @FindBy(css = ".payment-summary .total-amount")
-    private WebElement totalAmountDisplay;
+    @FindBy(css = ".continue-button")
+    private WebElement continueButton;
 
-    @FindBy(css = "button.pay-button span")
-    private WebElement payButtonAmountText;
+    @FindBy(css = ".summary-amount")
+    private WebElement summaryAmount;
 
-    @FindBy(css = ".summary-phone")
-    private WebElement displayedPhone;
-
-    // Незаполненные поля для реквизитов карты
-    @FindBy(css = "#card-number")
-    private WebElement cardNumberField;
-
-    @FindBy(css = "#expiry-date")
-    private WebElement expiryDateField;
-
-    @FindBy(css = "#cvv")
-    private WebElement cvvField;
-
-    // Иконки платёжных систем (пример: .payment-icons img)
-    @FindBy(css = ".payment-icons img")
-    private List<WebElement> paymentIcons;
-
-    // Подсказки/надписи у полей (placeholder или label)
-    private static final By cardNumberLabel = By.cssSelector("[for='card-number']");
-    private static final By expiryDateLabel = By.cssSelector("[for='expiry-date']");
-    private static final By cvvLabel = By.cssSelector("[for='cvv']");
+    private final WebDriverWait wait;
 
     public PaymentDetailsPage(WebDriver driver) {
-        this.driver = driver;
+        super(driver);
         PageFactory.initElements(driver, this);
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
-    public String getTotalAmount() {
-        return totalAmountDisplay.getText();
+    public void enterAmount(String amount) {
+        amountInput.clear();
+        amountInput.sendKeys(amount);
     }
 
-    public String getPayButtonAmount() {
-        return payButtonAmountText.getText();
+    public void clickContinue() {
+        continueButton.click();
     }
 
-    public String getDisplayedPhone() {
-        return displayedPhone.getText();
+    public String getSummaryAmountText() {
+        return wait.until(ExpectedConditions.visibilityOf(summaryAmount)).getText();
     }
 
-    public List<WebElement> getPaymentIcons() {
-        return paymentIcons;
-    }
-
-    public String getCardNumberLabel() {
-        return driver.findElement(cardNumberLabel).getText();
-    }
-
-    public String getExpiryDateLabel() {
-        return driver.findElement(expiryDateLabel).getText();
-    }
-
-    public String getCvvLabel() {
-        return driver.findElement(cvvLabel).getText();
-    }
-
-    public boolean isCardNumberFieldEmpty() {
-        return cardNumberField.getAttribute("value") == null || cardNumberField.getAttribute("value").isEmpty();
-    }
-
-    public boolean isExpiryDateFieldEmpty() {
-        return expiryDateField.getAttribute("value") == null || expiryDateField.getAttribute("value").isEmpty();
-    }
-
-    public boolean isCvvFieldEmpty() {
-        return cvvField.getAttribute("value") == null || cvvField.getAttribute("value").isEmpty();
-    }
 }
