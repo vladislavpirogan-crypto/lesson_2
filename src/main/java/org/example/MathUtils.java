@@ -22,7 +22,7 @@ public class MathUtils {
         return 0.5 * base * height;
     }
 
-    // 3. Арифметические действия
+    // 3. Арифметические действия с двумя целыми числами
     public static int add(int a, int b) { return a + b; }
     public static int subtract(int a, int b) { return a - b; }
     public static int multiply(int a, int b) { return a * b; }
