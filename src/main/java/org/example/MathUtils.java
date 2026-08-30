@@ -15,7 +15,7 @@ public class MathUtils {
     }
 
     // 2. Площадь треугольника по основанию и высоте
-    public static double triangleArea(double base, double height, int i) {
+    public static double triangleArea(double base, double height) {
         if (base <= 0 || height <= 0) {
             throw new IllegalArgumentException("base and height must be positive");
         }
@@ -35,8 +35,8 @@ public class MathUtils {
     }
 
     // 4. Сравнение двух целых чисел
-    // Возвращает: -1 если a < b, 0 если a == b, 1 если a > b
-    public static boolean compare(int a, int b) {
+    // -1 если a < b, 0 если a == b, 1 если a > b
+    public static int compare(int a, int b) {
         if (a < b) return -1;
         if (a > b) return 1;
         return 0;
