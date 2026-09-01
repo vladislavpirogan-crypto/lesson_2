@@ -50,6 +50,26 @@ public class PostmanEchoPlainTest {
     }
 
     @Test
+    public void testPostForm() {
+        var response = RestAssured.given()
+                .formParam("username", "alice_user")
+                .formParam("password", "secret123")
+                .formParam("role", "tester")
+                .when()
+                .post("/post")
+                .then()
+                .extract().response();
+
+        assertEquals(200, response.getStatusCode(), "Статус код POST (form) должен быть 200");
+
+        String body = response.asString();
+        // postman-echo возвращает отправленные данные в поле form
+        assertTrue(body.contains("\"username\":\"alice_user\""), "В ответе должен быть username");
+        assertTrue(body.contains("\"password\":\"secret123\""), "В ответе должен быть password");
+        assertTrue(body.contains("\"role\":\"tester\""), "В ответе должен быть role");
+    }
+
+    @Test
     public void testPut() {
         String payload = "{\"name\":\"Bob\",\"age\":25,\"role\":\"user\"}";
 
