@@ -24,13 +24,9 @@ public class MtsPaymentTest {
 
     @BeforeTest
     public void setUp() {
-        // Автоматическая загрузка драйвера Chrome
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver();
-
-        // Явное ожидание элементов (15 секунд максимум)
         wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-
         driver.manage().window().maximize();
     }
 
@@ -41,115 +37,130 @@ public class MtsPaymentTest {
         }
     }
 
+    // Задача 1: Проверить, что блок «Онлайн пополнение без комиссии» отображается
     @Test
-    public void testOnlinePaymentBlock() {
-        System.out.println("--- Старт теста блока 'Онлайн пополнение без комиссии' ---");
-
+    public void testBlockTitleIsPresent() {
         driver.get(BASE_URL);
 
-        // Проверка: нет ли страницы блокировки (Cloudflare/Captcha)
-        // Если на странице есть слово "Checking" или "Access denied", значит сайт нас видит как бота
         String pageSource = driver.getPageSource();
         if (pageSource != null && (pageSource.contains("Checking") || pageSource.contains("Access denied"))) {
-            fail("❌ Сайт заблокировал доступ (Cloudflare/Captcha). Тест не может пройти дальше. Это защита сайта, а не ошибка кода.");
+            fail("Сайт заблокировал доступ (Cloudflare/Captcha). Тест не может пройти дальше.");
         }
 
-        // === ЗАДАЧА 1: Проверить название указанного блока ===
         String expectedBlockTitle = "Онлайн пополнение без комиссии";
         By blockTitleLocator = By.xpath("//*[contains(text(), '" + expectedBlockTitle + "')]");
 
-        try {
-            wait.until(ExpectedConditions.visibilityOfElementLocated(blockTitleLocator));
-            System.out.println("✅ Блок найден: " + expectedBlockTitle);
-        } catch (Exception e) {
-            fail("❌ Не удалось найти блок с названием '" + expectedBlockTitle + "'. Возможно, изменилась верстка сайта.");
-        }
+        WebElement blockTitleElement = wait.until(ExpectedConditions.visibilityOfElementLocated(blockTitleLocator));
 
-        // === ЗАДАЧА 2: Проверить наличие логотипов платёжных систем ===
-        var blockElement = driver.findElement(blockTitleLocator);
-        List<WebElement> logos = blockElement.findElements(By.tagName("img"));// ИСПРАВЛЕНО: Используем !isEmpty() вместо size() > 0
-        assertFalse(logos.isEmpty(), "❌ В блоке не найдено ни одного логотипа платёжной системы.");
-        System.out.println("✅ Найдено логотипов платёжных систем: " + logos.size());
+        assertTrue(blockTitleElement.getText().contains(expectedBlockTitle),
+                "Не найден блок с заголовком '" + expectedBlockTitle + "'");
+    }
 
-        // === ЗАДАЧА 3: Проверить работу ссылки «Подробнее о сервисе» ===
+    // Задача 2: Проверить наличие логотипов платёжных систем в блоке
+    @Test(dependsOnMethods = "testBlockTitleIsPresent")
+    public void testPaymentLogosArePresent() {
+        String expectedBlockTitle = "Онлайн пополнение без комиссии";
+        By blockTitleLocator = By.xpath("//*[contains(text(), '" + expectedBlockTitle + "')]");
+        WebElement blockElement = driver.findElement(blockTitleLocator);
+
+        List<WebElement> logos = blockElement.findElements(By.tagName("img"));
+
+        assertFalse(logos.isEmpty(), "В блоке не найдено ни одного логотипа платёжной системы");
+    }
+
+    // Задача 3: Проверить работу ссылки «Подробнее о сервисе» —
+    // не только переход, но и что на новой странице нужный контент
+    @Test(dependsOnMethods = "testBlockTitleIsPresent")
+    public void testMoreInfoLinkWorks() {
         By moreInfoLinkLocator = By.linkText("Подробнее о сервисе");
+        WebElement link = wait.until(ExpectedConditions.elementToBeClickable(moreInfoLinkLocator));
 
+        String originalUrl = driver.getCurrentUrl();
+        link.click();
+
+        wait.until(ExpectedConditions.not(ExpectedConditions.urlToBe(originalUrl)));
+        String newUrl = driver.getCurrentUrl();
+
+        // Assert 1: URL изменился
+        assertNotEquals(newUrl, originalUrl, "Переход по ссылке не произошёл: URL не изменился");
+
+        // Assert 2: на новой странице есть ожидаемый контент.
+        // Проверяем, что страница содержит текст, связанный с услугой пополнения.
+        // Здесь мы ждём появления элемента, который подтверждает, что мы на нужной странице.
+        By pageContentLocator = By.xpath(
+                "//*[contains(text(), 'Платежи') or contains(text(), 'Пополнение') " +
+                        "or contains(text(), 'Комиссия') or contains(text(), 'Сервис')]");
+
+        WebElement contentElement = wait.until(
+                ExpectedConditions.visibilityOfElementLocated(pageContentLocator));
+
+        assertNotNull(contentElement,
+                "Переход выполнен, но на новой странице нет ожидаемого контента о сервисе платежей");
+
+        String text = contentElement.getText();
+        assertFalse(text.isEmpty(),
+                "Контент найден, но текст пустой — возможно, страница не загрузилась корректно");
+
+        System.out.println("Ссылка работает: переход на " + newUrl + ", контент подтверждён.");
+
+        driver.navigate().back();
+        wait.until(ExpectedConditions.urlToBe(originalUrl));
+    }
+
+    // Задача 4: Заполнить форму и проверить реакцию кнопки «Продолжить» —
+    // проверяем не только факт клика, но и появление ожидаемого результата
+    @Test(dependsOnMethods = "testBlockTitleIsPresent")
+    public void testContinueButtonTriggersAction() {
+        By servicesOptionLocator = By.xpath(
+                "//button[contains(text(), 'Услуги связи')] | //label[contains(text(), 'Услуги связи')]");
+
+        WebElement servicesOption = wait.until(ExpectedConditions.elementToBeClickable(servicesOptionLocator));
+        servicesOption.click();
+
+        By phoneInputLocator = By.xpath(
+                "//input[contains(@placeholder, 'Номер') or contains(@name, 'phone') or contains(@id, 'phone')]");
+        WebElement phoneInput = wait.until(ExpectedConditions.visibilityOfElementLocated(phoneInputLocator));
+        phoneInput.clear();
+        phoneInput.sendKeys("297777777");
+
+        By continueButtonLocator = By.xpath(
+                "//button[contains(text(), 'Продолжить')] | //a[contains(text(), 'Продолжить')]");
+        WebElement continueBtn = wait.until(ExpectedConditions.elementToBeClickable(continueButtonLocator));
+
+        String beforeClickUrl = driver.getCurrentUrl();
+        continueBtn.click();
+
+        // Проверяем, что после нажатия появился ожидаемый результат:
+        // либо переход на новую страницу с формой подтверждения,
+        // либо появление элементов подтверждения на текущей странице.
         try {
-            var link = wait.until(ExpectedConditions.elementToBeClickable(moreInfoLinkLocator));
-            String originalUrl = driver.getCurrentUrl();
+            // Вариант А: переход на новую страницу — проверяем и URL, и контент
+            wait.until(ExpectedConditions.not(ExpectedConditions.urlToBe(beforeClickUrl)));
+            String afterClickUrl = driver.getCurrentUrl();
+            assertNotEquals(afterClickUrl, beforeClickUrl, "URL не изменился после нажатия");
 
-            link.click();
+            // Проверяем, что на новой странице есть ожидаемый контент
+            // (форма подтверждения, поля карты, сообщение и т.д.)
+            By confirmationContentLocator = By.xpath(
+                    "//*[contains(text(), 'Карта') or contains(text(), 'Оплата') " +
+                            "or contains(text(), 'Сумма') or contains(text(), 'Подтверждение')]");
 
-            wait.until(ExpectedConditions.not(ExpectedConditions.urlToBe(originalUrl)));
-
-            System.out.println("✅ Ссылка 'Подробнее о сервисе' работает, переход выполнен.");
-
-
-            driver.navigate().back();
-            wait.until(ExpectedConditions.urlToBe(originalUrl));
+            WebElement confirmationElement = wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(confirmationContentLocator));
+            assertNotNull(confirmationElement,
+                    "Переход выполнен, но на странице нет ожидаемого контента подтверждения платежа");
 
         } catch (Exception e) {
-            fail("❌ Ссылка 'Подробнее о сервисе' не найдена или не кликабельна.");
+            // Вариант Б: URL не изменился — проверяем появление элементов на текущей странице
+            By resultLocator = By.xpath(
+                    "//*[contains(@class, 'loader') or contains(@class, 'spinner') " +
+                            "or contains(text(), 'Оплата') or contains(text(), 'Карта') " +
+                            "or contains(text(), 'Сумма')]");
+
+            WebElement resultElement = wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(resultLocator));
+            assertNotNull(resultElement,
+                    "После нажатия «Продолжить» не появился ни переход, ни ожидаемый контент на странице");
         }
-
-        // === ЗАДАЧА 4: Заполнить поля и проверить работу кнопки «Продолжить» ===
-        System.out.println("--- Проверка формы пополнения ---");
-
-        By servicesOptionLocator = By.xpath("//button[contains(text(), 'Услуги связи')] | //label[contains(text(), 'Услуги связи')]");
-
-        try {
-            var servicesOption = wait.until(ExpectedConditions.elementToBeClickable(servicesOptionLocator));
-            servicesOption.click();
-            System.out.println("✅ Выбран вариант 'Услуги связи'.");
-        } catch (Exception e) {
-            // Если не кнопка, пробуем радио-кнопку
-            By radioInputLocator = By.xpath("//input[@type='radio']//following::span[contains(text(), 'Услуги связи')]/parent::label");
-            try {
-                var radio = wait.until(ExpectedConditions.elementToBeClickable(radioInputLocator));
-                radio.click();
-                System.out.println("✅ (Альтернатива) Вариант 'Услуги связи' выбран через радио-кнопку.");
-            } catch (Exception ex) {
-                fail("❌ Не удалось выбрать вариант 'Услуги связи'. Проверьте структуру страницы.");
-            }
-        }
-        By phoneInputLocator = By.xpath("//input[contains(@placeholder, 'Номер') or contains(@name, 'phone') or contains(@id, 'phone')]");
-
-        try {
-            var phoneInput = wait.until(ExpectedConditions.visibilityOfElementLocated(phoneInputLocator));
-            phoneInput.clear();
-            phoneInput.sendKeys("297777777");
-            System.out.println("✅ Номер телефона введен.");
-        } catch (Exception e) {
-            fail("❌ Не найдено поле для ввода номера телефона.");
-        }
-        By continueButtonLocator = By.xpath("//button[contains(text(), 'Продолжить')] | //a[contains(text(), 'Продолжить')]");
-
-        try {
-            var continueBtn = wait.until(ExpectedConditions.elementToBeClickable(continueButtonLocator));
-
-            System.out.println("✅ Кнопка 'Продолжить' найдена и готова к нажатию.");
-
-            String beforeClickUrl = driver.getCurrentUrl();
-            continueBtn.click();
-            try {
-                // Вариант А: Ждем изменения URL
-                wait.until(ExpectedConditions.not(ExpectedConditions.urlToBe(beforeClickUrl)));
-                System.out.println("✅ Нажатие кнопки сработало: произошел переход на следующую страницу.");
-            } catch (Exception urlEx) {
-                // Вариант Б: Если URL не меняется, ждем появления индикатора загрузки
-                System.out.println("⚠️ URL не изменился сразу. Проверяем наличие индикатора загрузки...");
-                By loaderLocator = By.cssSelector(".loader, .spinner, [class*='loading'], [class*='progress']");
-                try {
-                    wait.until(ExpectedConditions.visibilityOfElementLocated(loaderLocator));
-                    System.out.println("✅ Нажатие сработало: виден индикатор загрузки.");
-                } catch (Exception loadEx) {
-                    System.out.println("ℹ️ Форма отправлена. Ждем появления сообщения об успехе или новой формы.");
-                }
-            }
-        } catch (Exception e) {
-            fail("❌ Кнопка 'Продолжить' не найдена или неактивна.");
-        }
-
-        System.out.println("\n🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО!");
     }
 }
